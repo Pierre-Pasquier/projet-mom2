@@ -31,8 +31,8 @@ T_min = 18
 T_max = 25
 kG = 0.1  # Price of power from the grid
 dissatisfaction_cost = 0.5  # Fixed dissatisfaction cost per unit change in temperature
-start_shiftable_loads = 0  # Start of shiftable loads
-end_shiftable_loads = 24  # End of shiftable loads
+start_shiftable_loads = 16  # Start of shiftable loads
+end_shiftable_loads = 44  # End of shiftable loads
 
 # Set objective function
 objective = gp.quicksum((gp.quicksum(gamma_m[h][m]*P_m[h][m] for m in range(M)) + gp.quicksum(gamma_n[h][n]*P_n[h][n] for n in range(N)) - P_ul) for h in range(HOURS_IN_DAY)) * kG + dissatisfaction_cost * gp.quicksum(Tu_set[h] - Tu_req[h] for h in range(HOURS_IN_DAY))
@@ -78,3 +78,76 @@ print("Optimal P_n:", [[P_m[h][n] for h in range(HOURS_IN_DAY)] for m in range(n
 print("Optimal Tu_set:", [Tu_set[h] for h in range(HOURS_IN_DAY)])
 print("Optimal Tu_req:", [Tu_req[h] for h in range(HOURS_IN_DAY)])
 print("Objective value:", model.objVal)
+
+import matplotlib.pyplot as plt
+
+# Extract the optimal gamma_m values
+optimal_gamma_m = [[gamma_m[h][m].x for h in range(HOURS_IN_DAY)] for m in range(M)]
+
+# Plot gamma_m curves
+for m in range(M):
+    plt.plot(range(HOURS_IN_DAY), optimal_gamma_m[m], label=f"Curve {m+1}")
+
+# Set labels and title
+plt.xlabel("h")
+plt.ylabel("gamma_m")
+plt.title("Gamma_m Curves")
+
+# Add legend
+plt.legend()
+
+# Save the plot
+plt.savefig("plot.png")
+
+# Show the plot
+plt.show()
+
+# Create a new figure
+plt.figure()
+
+# Extract the optimal P_m values
+optimal_P_m = [[P_m[h][m].x for h in range(HOURS_IN_DAY)] for m in range(M)]
+
+# Plot P_m curves
+for m in range(M):
+    plt.plot(range(HOURS_IN_DAY), optimal_P_m[m], label=f"P_m {m+1}")
+
+# Set labels and title
+plt.xlabel("h")
+plt.ylabel("P_m")
+plt.title("P_m Curves")
+
+# Add legend
+plt.legend()
+
+# Save the plot
+plt.savefig("P_m_plot.png")
+
+# Show the plot
+plt.show()
+
+# Create a new figure
+plt.figure()
+
+# Extract the optimal P_n values
+optimal_P_n = [[P_n[h][n].x for h in range(HOURS_IN_DAY)] for n in range(N)]
+
+
+# Plot P_n curves
+for n in range(N):
+    plt.plot(range(HOURS_IN_DAY), optimal_P_n[n], label=f"P_n {n+1}")
+
+# Set labels and title
+plt.xlabel("h")
+plt.ylabel("P_n")
+plt.title("P_n Curves")
+
+# Add legend
+plt.legend()
+
+# Save the plot
+plt.savefig("P_n_plot.png")
+
+# Show the plot
+plt.show()
+
