@@ -5,30 +5,32 @@ import os
 
 # Define constants
 HOURS_IN_DAY = 48
-M = 5  # Number of shiftable loads
-N = 5  # Number of non-shiftable loads
+M = 3  # Number of shiftable loads
+N = 3  # Number of non-shiftable loads
 os.environ["GRB_LICENSE_FILE"] = "./gurobi.lic"
 
 # Create a new model
 model = gp.Model()
 
 # Define variables
-gamma_m = model.addMVar((HOURS_IN_DAY,M), vtype=GRB.CONTINUOUS, name="gamma_m")
-gamma_n = model.addMVar((HOURS_IN_DAY,N), vtype=GRB.CONTINUOUS, name="gamma_n")
-P_m = model.addMVar((HOURS_IN_DAY,M), vtype=GRB.CONTINUOUS, name="P_m")
-P_n = model.addMVar((HOURS_IN_DAY,N), vtype=GRB.CONTINUOUS, name="P_n")
-Tu_set = model.addVars(HOURS_IN_DAY,vtype=GRB.CONTINUOUS, name="Tu_set")
-Tu_req = model.addVars(HOURS_IN_DAY,vtype=GRB.CONTINUOUS, name="Tu_req")
+gamma_m = model.addMVar((HOURS_IN_DAY,M), vtype=GRB.BINARY, name="gamma_m")
+gamma_n = model.addMVar((HOURS_IN_DAY,N), vtype=GRB.BINARY, name="gamma_n")
+
+# Import power.csv as a numpy matrix
+P_m = np.genfromtxt('Data/power.csv', delimiter=',')
+P_n = np.genfromtxt('Data/power.csv', delimiter=',')
+
+
+Tu_set = [21] * HOURS_IN_DAY
+Tu_req = [21] * HOURS_IN_DAY
 
 # Define parameters
-E_m = np.random.rand(M)  # Random energy values for demonstration
-E_n = np.random.rand(N)  # Random energy values for demonstration
-P_min = 0
+E_m = [3000000,290400,2000000]  
+E_n = [3000000,290400,2000000]  
+
 #P_ul is the onsite power produced
 P_ul = 50
-P_max = 100
-T_min = 18
-T_max = 25
+
 kG = 0.1  # Price of power from the grid
 dissatisfaction_cost = 0.5  # Fixed dissatisfaction cost per unit change in temperature
 start_shiftable_loads = 16  # Start of shiftable loads
@@ -49,24 +51,24 @@ for h in range(HOURS_IN_DAY):
 for h in range(HOURS_IN_DAY):
     for m in range(M):
         if start_shiftable_loads <= h <= end_shiftable_loads:
-            model.addConstr(P_m[h][m] >= 0)
-        else:
             model.addConstr(gamma_m[h][m] >= 0)
+        else:
+            model.addConstr(gamma_m[h][m] == 0)
     for n in range(N):
         if start_shiftable_loads <= h <= end_shiftable_loads:
-            model.addConstr(P_n[h][n] >= 0)
-        else:
             model.addConstr(gamma_n[h][n] >= 0)
+        else:
+            model.addConstr(gamma_n[h][n] == 0)
 
-for h in range(HOURS_IN_DAY):
+'''for h in range(HOURS_IN_DAY):
     model.addConstrs(P_m[h][m] >= P_min for m in range(M))
-    model.addConstrs(P_n[h][n] <= P_max for n in range(N))
+    model.addConstrs(P_n[h][n] <= P_max for n in range(N))'''
 
-for h in range(HOURS_IN_DAY):
+'''for h in range(HOURS_IN_DAY):
     model.addConstr(Tu_set[h] >= T_min)
     model.addConstr(Tu_set[h] <= T_max)
     model.addConstr(Tu_req[h] >= T_min)
-    model.addConstr(Tu_req[h] <= T_max)
+    model.addConstr(Tu_req[h] <= T_max)'''
 
 # Optimize the model
 model.optimize()
@@ -77,7 +79,7 @@ print("Optimal P_m:", [[P_m[h][m] for h in range(HOURS_IN_DAY)] for m in range(M
 print("Optimal P_n:", [[P_m[h][n] for h in range(HOURS_IN_DAY)] for m in range(n)])
 print("Optimal Tu_set:", [Tu_set[h] for h in range(HOURS_IN_DAY)])
 print("Optimal Tu_req:", [Tu_req[h] for h in range(HOURS_IN_DAY)])
-print("Objective value:", model.objVal)
+print("Objective value:", model.ObjVal)
 
 import matplotlib.pyplot as plt
 
@@ -106,7 +108,7 @@ plt.show()
 plt.figure()
 
 # Extract the optimal P_m values
-optimal_P_m = [[P_m[h][m].x for h in range(HOURS_IN_DAY)] for m in range(M)]
+optimal_P_m = [[P_m[h][m] for h in range(HOURS_IN_DAY)] for m in range(M)]
 
 # Plot P_m curves
 for m in range(M):
@@ -130,7 +132,7 @@ plt.show()
 plt.figure()
 
 # Extract the optimal P_n values
-optimal_P_n = [[P_n[h][n].x for h in range(HOURS_IN_DAY)] for n in range(N)]
+optimal_P_n = [[P_n[h][n] for h in range(HOURS_IN_DAY)] for n in range(N)]
 
 
 # Plot P_n curves
